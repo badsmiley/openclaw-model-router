@@ -1,0 +1,116 @@
+# OpenCLAW Model Router Configuration
+# Copy this file to routing.yaml and fill in your values
+
+# Enable/disable the router
+enabled: true
+
+# Default budget settings (in cents/millidollars)
+budget:
+  daily_limit: 50000      # $50/day max
+  alert_threshold: 40000  # Alert at 80%
+  per_task_limit: 5000    # $5 per task max
+
+# Model Registry - Add your configured models here
+models:
+  # Example: MiniMax M2.1 - cheap chat
+  minimax:
+    name: "minimax/MiniMax-M2.1"
+    type: ["chat", "code_simple"]
+    cost_per_1m_tokens: 10
+    max_context: 195000
+    priority: 1
+    capabilities:
+      - chat
+      - simple_code
+      - general_reasoning
+
+  # Example: Claude Opus 4.5 - expensive but powerful
+  claude_opus:
+    name: "google-antigravity/claude-opus-4-5-thin"
+    type: ["code_complex", "reasoning", "creative"]
+    cost_per_1m_tokens: 3000
+    max_context: 195000
+    priority: 2
+    capabilities:
+      - complex_code
+      - architecture
+      - reasoning
+      - creative_writing
+
+  # Example: GPT-5.2-Codex - specialized for code
+  codex:
+    name: "openai/gpt-5.2-codex"
+    type: ["code_review", "debugging"]
+    cost_per_1m_tokens: 2000
+    max_context: 391000
+    priority: 3
+    capabilities:
+      - code_review
+      - debugging
+      - code_explanation
+
+  # Example: Gemini 3 Flash - fast and cheap
+  gemini_flash:
+    name: "google-antigravity/gemini-3-flash"
+    type: ["chat", "data"]
+    cost_per_1m_tokens: 50
+    max_context: 1024000
+    priority: 1
+    capabilities:
+      - chat
+      - data_processing
+      - fast_tasks
+
+# Routing Rules - Order matters (first match wins)
+routing_rules:
+  # Rule 1: Simple code → cheapest model
+  - when:
+      task_type: "code_simple"
+      complexity: "low"
+    use: "minimax"
+    fallback: "gemini_flash"
+    reasoning: "Simple code doesn't require expensive models"
+
+  # Rule 2: Code review → specialized Codex
+  - when:
+      task_type: "code_review"
+    use: "codex"
+    fallback: "claude_opus"
+    reasoning: "Code review needs specialized attention"
+
+  # Rule 3: Complex code → most capable
+  - when:
+      task_type: "code_complex"
+      complexity: "high"
+    use: "claude_opus"
+    fallback: "claude_sonnet"
+    reasoning: "Complex architecture needs senior-level model"
+
+  # Rule 4: Default chat → cheap model
+  - when:
+      task_type: "chat"
+    use: "minimax"
+    fallback: "gemini_flash"
+    reasoning: "General chat can use budget options"
+
+  # Rule 5: High-value tasks → always use best
+  - when:
+      task_type: "reasoning"
+      complexity: "high"
+    use: "claude_opus"
+    fallback: null  # No fallback for critical tasks
+    reasoning: "Critical reasoning needs best available"
+
+# Fallback chain (if preferred model fails)
+fallback_chain:
+  - claude_opus
+  - claude_sonnet
+  - gemini_flash
+  - minimax
+
+# Logging and tracking
+logging:
+  level: "info"
+  track_costs: true
+  track_effort: true  # Inspired by Pith's effort differential
+  log_file: "router.log"
